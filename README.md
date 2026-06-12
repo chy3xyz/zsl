@@ -12,15 +12,23 @@ Phase 1 implements the core linear-algebra foundation:
 - `la` — dense `Vector(T)` and `Matrix(T)` containers
 - `blas` — BLAS Level-1 operations
 
+Phase 2 extends BLAS coverage to Level-2 and Level-3:
+
+- `gemv` — matrix-vector multiply with transpose
+- `ger` — rank-one update
+- `gemm` — matrix-matrix multiply with transpose and blocking
+
 ## Build
 
 Requires Zig 0.17.0-dev or later.
 
 ```sh
-zig build test      # run unit tests
-zig build example   # run vector_ops demo
+zig build test           # run unit tests
+zig build example        # run matrix_ops demo
+zig build example-vector # run vector_ops demo
 ```
 
-## Quick Example
+## Quick Examples
 
-See `examples/vector_ops.zig`.
+- `examples/vector_ops.zig` — BLAS Level-1 vector operations
+- `examples/matrix_ops.zig` — BLAS Level-2/3 matrix operations

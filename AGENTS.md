@@ -29,16 +29,20 @@ zsl/
 │   ├── float.zig          # Floating-point helpers
 │   ├── errors.zig         # Shared error set
 │   ├── la.zig             # Vector / Matrix types
-│   └── blas.zig           # BLAS Level-1 operations
+│   ├── blas.zig           # BLAS Level-1/2/3 operations
+│   └── blas/
+│       └── types.zig      # Transpose enum
 └── examples/
-    └── vector_ops.zig     # Runnable demo
+    ├── vector_ops.zig     # Vector BLAS demo
+    └── matrix_ops.zig     # Matrix BLAS demo
 ```
 
 ## 4. Build and test commands
 
 ```sh
-zig build test      # run all unit tests
-zig build example   # build and run examples/vector_ops.zig
+zig build test           # run all unit tests
+zig build example        # build and run examples/matrix_ops.zig
+zig build example-vector # build and run examples/vector_ops.zig
 ```
 
 ## 5. Code style guidelines

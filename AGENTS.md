@@ -34,7 +34,8 @@ zsl/
 │       └── types.zig      # Transpose enum
 └── examples/
     ├── vector_ops.zig     # Vector BLAS demo
-    └── matrix_ops.zig     # Matrix BLAS demo
+    ├── matrix_ops.zig     # Matrix BLAS demo
+    └── blas_core.zig      # Symmetric/triangular BLAS demo
 ```
 
 ## 4. Build and test commands
@@ -43,6 +44,7 @@ zsl/
 zig build test           # run all unit tests
 zig build example        # build and run examples/matrix_ops.zig
 zig build example-vector # build and run examples/vector_ops.zig
+zig build example-blas   # build and run examples/blas_core.zig
 ```
 
 ## 5. Code style guidelines

@@ -43,4 +43,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
     example_step.dependOn(&b.addRunArtifact(matrix_exe).step);
+
+    const blas_example_step = b.step("example-blas", "Run blas_core example");
+    const blas_exe = b.addExecutable(.{
+        .name = "blas_core",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/blas_core.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    blas_example_step.dependOn(&b.addRunArtifact(blas_exe).step);
 }

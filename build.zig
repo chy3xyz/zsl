@@ -57,4 +57,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
     blas_example_step.dependOn(&b.addRunArtifact(blas_exe).step);
+
+    const lapack_example_step = b.step("example-lapack", "Run lapack_solve example");
+    const lapack_exe = b.addExecutable(.{
+        .name = "lapack_solve",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/lapack_solve.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    lapack_example_step.dependOn(&b.addRunArtifact(lapack_exe).step);
 }

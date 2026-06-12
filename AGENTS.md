@@ -30,12 +30,16 @@ zsl/
 │   ├── errors.zig         # Shared error set
 │   ├── la.zig             # Vector / Matrix types
 │   ├── blas.zig           # BLAS Level-1/2/3 operations
-│   └── blas/
-│       └── types.zig      # Transpose enum
+│   ├── blas/
+│   │   └── types.zig      # Transpose enum
+│   ├── lapack.zig         # LAPACK re-exports
+│   └── lapack/
+│       └── lu.zig         # LU factorization / linear solve
 └── examples/
     ├── vector_ops.zig     # Vector BLAS demo
     ├── matrix_ops.zig     # Matrix BLAS demo
-    └── blas_core.zig      # Symmetric/triangular BLAS demo
+    ├── blas_core.zig      # Symmetric/triangular BLAS demo
+    └── lapack_solve.zig   # LAPACK linear solver demo
 ```
 
 ## 4. Build and test commands
@@ -45,6 +49,7 @@ zig build test           # run all unit tests
 zig build example        # build and run examples/matrix_ops.zig
 zig build example-vector # build and run examples/vector_ops.zig
 zig build example-blas   # build and run examples/blas_core.zig
+zig build example-lapack # build and run examples/lapack_solve.zig
 ```
 
 ## 5. Code style guidelines

@@ -2,6 +2,14 @@ const std = @import("std");
 const util = @import("util.zig");
 const Error = @import("errors.zig").Error;
 const Vector = @import("la.zig").Vector;
+const Matrix = @import("la.zig").Matrix;
+
+pub const types = @import("blas/types.zig");
+pub const Transpose = types.Transpose;
+
+test {
+    _ = types;
+}
 
 fn checkSameLengthVectors(comptime T: type, a: Vector(T), b: Vector(T)) Error!void {
     _ = util.Float(T);

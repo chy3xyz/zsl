@@ -1011,3 +1011,543 @@ test "trsv solves triangular system" {
     try std.testing.expect(float.approxEqAbs(T, try b.get(1), 3.0, 1e-12));
     try std.testing.expect(float.approxEqAbs(T, try b.get(2), 1.0, 1e-12));
 }
+
+// ---------------------------------------------------------------------------
+// Level-3: symmetric and triangular matrix-matrix operations
+// ---------------------------------------------------------------------------
+
+pub fn syrk(
+    comptime T: type,
+    uplo: Uplo,
+    trans_a: Transpose,
+    alpha: T,
+    a: Matrix(T),
+    beta: T,
+    c: *Matrix(T),
+) Error!void {
+    _ = util.Float(T);
+    const n = c.rows;
+    if (n != c.cols) return error.ShapeMismatch;
+
+    const k = if (trans_a == .no_trans) a.cols else a.rows;
+    if (trans_a == .no_trans and a.rows != n) return error.ShapeMismatch;
+    if (trans_a == .no_trans and a.cols != k) return error.ShapeMismatch;
+    if (trans_a != .no_trans and a.cols != n) return error.ShapeMismatch;
+    if (trans_a != .no_trans and a.rows != k) return error.ShapeMismatch;
+
+    // Scale C by beta
+    if (beta == 0) {
+        for (0..n) |i| {
+            const start = if (uplo == .upper) i else 0;
+            const end = if (uplo == .upper) n else i + 1;
+            for (start..end) |j| {
+                c.data[i * c.row_stride + j * c.col_stride] = 0;
+            }
+        }
+    } else if (beta != 1) {
+        for (0..n) |i| {
+            const start = if (uplo == .upper) i else 0;
+            const end = if (uplo == .upper) n else i + 1;
+            for (start..end) |j| {
+                c.data[i * c.row_stride + j * c.col_stride] *= beta;
+            }
+        }
+    }
+
+    if (alpha == 0) return;
+
+    switch (trans_a) {
+        .no_trans => {
+            for (0..n) |i| {
+                const start = if (uplo == .upper) i else 0;
+                const end = if (uplo == .upper) n else i + 1;
+                for (start..end) |j| {
+                    var sum: T = 0;
+                    for (0..k) |l| {
+                        sum += a.data[i * a.row_stride + l * a.col_stride] *
+                            a.data[j * a.row_stride + l * a.col_stride];
+                    }
+                    c.data[i * c.row_stride + j * c.col_stride] += alpha * sum;
+                }
+            }
+        },
+        .trans, .conj_trans => {
+            for (0..n) |i| {
+                const start = if (uplo == .upper) i else 0;
+                const end = if (uplo == .upper) n else i + 1;
+                for (start..end) |j| {
+                    var sum: T = 0;
+                    for (0..k) |l| {
+                        sum += a.data[l * a.row_stride + i * a.col_stride] *
+                            a.data[l * a.row_stride + j * a.col_stride];
+                    }
+                    c.data[i * c.row_stride + j * c.col_stride] += alpha * sum;
+                }
+            }
+        },
+    }
+}
+
+pub fn syr2k(
+    comptime T: type,
+    uplo: Uplo,
+    trans_a: Transpose,
+    alpha: T,
+    a: Matrix(T),
+    b: Matrix(T),
+    beta: T,
+    c: *Matrix(T),
+) Error!void {
+    _ = util.Float(T);
+    const n = c.rows;
+    if (n != c.cols) return error.ShapeMismatch;
+
+    const k = if (trans_a == .no_trans) a.cols else a.rows;
+    if (trans_a == .no_trans) {
+        if (a.rows != n or a.cols != k) return error.ShapeMismatch;
+        if (b.rows != n or b.cols != k) return error.ShapeMismatch;
+    } else {
+        if (a.cols != n or a.rows != k) return error.ShapeMismatch;
+        if (b.cols != n or b.rows != k) return error.ShapeMismatch;
+    }
+
+    // Scale C by beta
+    if (beta == 0) {
+        for (0..n) |i| {
+            const start = if (uplo == .upper) i else 0;
+            const end = if (uplo == .upper) n else i + 1;
+            for (start..end) |j| {
+                c.data[i * c.row_stride + j * c.col_stride] = 0;
+            }
+        }
+    } else if (beta != 1) {
+        for (0..n) |i| {
+            const start = if (uplo == .upper) i else 0;
+            const end = if (uplo == .upper) n else i + 1;
+            for (start..end) |j| {
+                c.data[i * c.row_stride + j * c.col_stride] *= beta;
+            }
+        }
+    }
+
+    if (alpha == 0) return;
+
+    switch (trans_a) {
+        .no_trans => {
+            for (0..n) |i| {
+                const start = if (uplo == .upper) i else 0;
+                const end = if (uplo == .upper) n else i + 1;
+                for (start..end) |j| {
+                    var sum: T = 0;
+                    for (0..k) |l| {
+                        sum += a.data[i * a.row_stride + l * a.col_stride] *
+                            b.data[j * a.row_stride + l * a.col_stride];
+                        sum += b.data[i * a.row_stride + l * a.col_stride] *
+                            a.data[j * a.row_stride + l * a.col_stride];
+                    }
+                    c.data[i * c.row_stride + j * c.col_stride] += alpha * sum;
+                }
+            }
+        },
+        .trans, .conj_trans => {
+            for (0..n) |i| {
+                const start = if (uplo == .upper) i else 0;
+                const end = if (uplo == .upper) n else i + 1;
+                for (start..end) |j| {
+                    var sum: T = 0;
+                    for (0..k) |l| {
+                        sum += a.data[l * a.row_stride + i * a.col_stride] *
+                            b.data[l * a.row_stride + j * a.col_stride];
+                        sum += b.data[l * a.row_stride + i * a.col_stride] *
+                            a.data[l * a.row_stride + j * a.col_stride];
+                    }
+                    c.data[i * c.row_stride + j * c.col_stride] += alpha * sum;
+                }
+            }
+        },
+    }
+}
+
+pub fn trmm(
+    comptime T: type,
+    side: Side,
+    uplo: Uplo,
+    trans_a: Transpose,
+    diag: Diagonal,
+    alpha: T,
+    a: Matrix(T),
+    b: *Matrix(T),
+) Error!void {
+    _ = util.Float(T);
+    const non_unit = diag == .non_unit;
+
+    switch (side) {
+        .left => {
+            if (a.rows != a.cols) return error.ShapeMismatch;
+            if (a.rows != b.rows) return error.ShapeMismatch;
+            const m = b.rows;
+            const n = b.cols;
+
+            for (0..n) |j| {
+                switch (uplo) {
+                    .upper => {
+                        switch (trans_a) {
+                            .no_trans => {
+                                for (0..m) |i| {
+                                    var temp: T = if (non_unit) a.data[i * a.row_stride + i * a.col_stride] * b.data[i * b.row_stride + j * b.col_stride] else b.data[i * b.row_stride + j * b.col_stride];
+                                    for (i + 1..m) |k| {
+                                        temp += a.data[i * a.row_stride + k * a.col_stride] * b.data[k * b.row_stride + j * b.col_stride];
+                                    }
+                                    b.data[i * b.row_stride + j * b.col_stride] = alpha * temp;
+                                }
+                            },
+                            .trans, .conj_trans => {
+                                var i: isize = @intCast(m - 1);
+                                while (i >= 0) : (i -= 1) {
+                                    const ui: usize = @intCast(i);
+                                    var temp: T = if (non_unit) a.data[ui * a.row_stride + ui * a.col_stride] * b.data[ui * b.row_stride + j * b.col_stride] else b.data[ui * b.row_stride + j * b.col_stride];
+                                    for (0..ui) |k| {
+                                        temp += a.data[k * a.row_stride + ui * a.col_stride] * b.data[k * b.row_stride + j * b.col_stride];
+                                    }
+                                    b.data[ui * b.row_stride + j * b.col_stride] = alpha * temp;
+                                }
+                            },
+                        }
+                    },
+                    .lower => {
+                        switch (trans_a) {
+                            .no_trans => {
+                                var i: isize = @intCast(m - 1);
+                                while (i >= 0) : (i -= 1) {
+                                    const ui: usize = @intCast(i);
+                                    var temp: T = if (non_unit) a.data[ui * a.row_stride + ui * a.col_stride] * b.data[ui * b.row_stride + j * b.col_stride] else b.data[ui * b.row_stride + j * b.col_stride];
+                                    for (0..ui) |k| {
+                                        temp += a.data[ui * a.row_stride + k * a.col_stride] * b.data[k * b.row_stride + j * b.col_stride];
+                                    }
+                                    b.data[ui * b.row_stride + j * b.col_stride] = alpha * temp;
+                                }
+                            },
+                            .trans, .conj_trans => {
+                                for (0..m) |i| {
+                                    var temp: T = if (non_unit) a.data[i * a.row_stride + i * a.col_stride] * b.data[i * b.row_stride + j * b.col_stride] else b.data[i * b.row_stride + j * b.col_stride];
+                                    for (i + 1..m) |k| {
+                                        temp += a.data[i * a.row_stride + k * a.col_stride] * b.data[k * b.row_stride + j * b.col_stride];
+                                    }
+                                    b.data[i * b.row_stride + j * b.col_stride] = alpha * temp;
+                                }
+                            },
+                        }
+                    },
+                }
+            }
+        },
+        .right => {
+            if (a.rows != a.cols) return error.ShapeMismatch;
+            if (a.rows != b.cols) return error.ShapeMismatch;
+            const m = b.rows;
+            const n = b.cols;
+
+            for (0..m) |i| {
+                switch (uplo) {
+                    .upper => {
+                        switch (trans_a) {
+                            .no_trans => {
+                                var j: isize = @intCast(n - 1);
+                                while (j >= 0) : (j -= 1) {
+                                    const uj: usize = @intCast(j);
+                                    var temp: T = if (non_unit) a.data[uj * a.row_stride + uj * a.col_stride] * b.data[i * b.row_stride + uj * b.col_stride] else b.data[i * b.row_stride + uj * b.col_stride];
+                                    for (0..uj) |k| {
+                                        temp += a.data[k * a.row_stride + uj * a.col_stride] * b.data[i * b.row_stride + k * b.col_stride];
+                                    }
+                                    b.data[i * b.row_stride + uj * b.col_stride] = alpha * temp;
+                                }
+                            },
+                            .trans, .conj_trans => {
+                                for (0..n) |uj| {
+                                    var temp: T = if (non_unit) a.data[uj * a.row_stride + uj * a.col_stride] * b.data[i * b.row_stride + uj * b.col_stride] else b.data[i * b.row_stride + uj * b.col_stride];
+                                    for (uj + 1..n) |k| {
+                                        temp += a.data[uj * a.row_stride + k * a.col_stride] * b.data[i * b.row_stride + k * b.col_stride];
+                                    }
+                                    b.data[i * b.row_stride + uj * b.col_stride] = alpha * temp;
+                                }
+                            },
+                        }
+                    },
+                    .lower => {
+                        switch (trans_a) {
+                            .no_trans => {
+                                for (0..n) |uj| {
+                                    var temp: T = if (non_unit) a.data[uj * a.row_stride + uj * a.col_stride] * b.data[i * b.row_stride + uj * b.col_stride] else b.data[i * b.row_stride + uj * b.col_stride];
+                                    for (uj + 1..n) |k| {
+                                        temp += a.data[uj * a.row_stride + k * a.col_stride] * b.data[i * b.row_stride + k * b.col_stride];
+                                    }
+                                    b.data[i * b.row_stride + uj * b.col_stride] = alpha * temp;
+                                }
+                            },
+                            .trans, .conj_trans => {
+                                var j: isize = @intCast(n - 1);
+                                while (j >= 0) : (j -= 1) {
+                                    const uj: usize = @intCast(j);
+                                    var temp: T = if (non_unit) a.data[uj * a.row_stride + uj * a.col_stride] * b.data[i * b.row_stride + uj * b.col_stride] else b.data[i * b.row_stride + uj * b.col_stride];
+                                    for (0..uj) |k| {
+                                        temp += a.data[k * a.row_stride + uj * a.col_stride] * b.data[i * b.row_stride + k * b.col_stride];
+                                    }
+                                    b.data[i * b.row_stride + uj * b.col_stride] = alpha * temp;
+                                }
+                            },
+                        }
+                    },
+                }
+            }
+        },
+    }
+}
+
+pub fn trsm(
+    comptime T: type,
+    side: Side,
+    uplo: Uplo,
+    trans_a: Transpose,
+    diag: Diagonal,
+    alpha: T,
+    a: Matrix(T),
+    b: *Matrix(T),
+) Error!void {
+    _ = util.Float(T);
+    const non_unit = diag == .non_unit;
+
+    // Scale B by alpha first
+    if (alpha != 1) {
+        for (0..b.rows) |i| {
+            for (0..b.cols) |j| {
+                b.data[i * b.row_stride + j * b.col_stride] *= alpha;
+            }
+        }
+    }
+
+    switch (side) {
+        .left => {
+            if (a.rows != a.cols) return error.ShapeMismatch;
+            if (a.rows != b.rows) return error.ShapeMismatch;
+            const m = b.rows;
+            const n = b.cols;
+
+            for (0..n) |j| {
+                switch (uplo) {
+                    .upper => {
+                        switch (trans_a) {
+                            .no_trans => {
+                                var i: isize = @intCast(m - 1);
+                                while (i >= 0) : (i -= 1) {
+                                    const ui: usize = @intCast(i);
+                                    var temp = b.data[ui * b.row_stride + j * b.col_stride];
+                                    for (ui + 1..m) |k| {
+                                        temp -= a.data[ui * a.row_stride + k * a.col_stride] * b.data[k * b.row_stride + j * b.col_stride];
+                                    }
+                                    if (non_unit) temp /= a.data[ui * a.row_stride + ui * a.col_stride];
+                                    b.data[ui * b.row_stride + j * b.col_stride] = temp;
+                                }
+                            },
+                            .trans, .conj_trans => {
+                                for (0..m) |ui| {
+                                    var temp = b.data[ui * b.row_stride + j * b.col_stride];
+                                    for (0..ui) |k| {
+                                        temp -= a.data[k * a.row_stride + ui * a.col_stride] * b.data[k * b.row_stride + j * b.col_stride];
+                                    }
+                                    if (non_unit) temp /= a.data[ui * a.row_stride + ui * a.col_stride];
+                                    b.data[ui * b.row_stride + j * b.col_stride] = temp;
+                                }
+                            },
+                        }
+                    },
+                    .lower => {
+                        switch (trans_a) {
+                            .no_trans => {
+                                for (0..m) |ui| {
+                                    var temp = b.data[ui * b.row_stride + j * b.col_stride];
+                                    for (0..ui) |k| {
+                                        temp -= a.data[ui * a.row_stride + k * a.col_stride] * b.data[k * b.row_stride + j * b.col_stride];
+                                    }
+                                    if (non_unit) temp /= a.data[ui * a.row_stride + ui * a.col_stride];
+                                    b.data[ui * b.row_stride + j * b.col_stride] = temp;
+                                }
+                            },
+                            .trans, .conj_trans => {
+                                var i: isize = @intCast(m - 1);
+                                while (i >= 0) : (i -= 1) {
+                                    const ui: usize = @intCast(i);
+                                    var temp = b.data[ui * b.row_stride + j * b.col_stride];
+                                    for (ui + 1..m) |k| {
+                                        temp -= a.data[k * a.row_stride + ui * a.col_stride] * b.data[k * b.row_stride + j * b.col_stride];
+                                    }
+                                    if (non_unit) temp /= a.data[ui * a.row_stride + ui * a.col_stride];
+                                    b.data[ui * b.row_stride + j * b.col_stride] = temp;
+                                }
+                            },
+                        }
+                    },
+                }
+            }
+        },
+        .right => {
+            if (a.rows != a.cols) return error.ShapeMismatch;
+            if (a.rows != b.cols) return error.ShapeMismatch;
+            const m = b.rows;
+            const n = b.cols;
+
+            for (0..m) |i| {
+                switch (uplo) {
+                    .upper => {
+                        switch (trans_a) {
+                            .no_trans => {
+                                for (0..n) |uj| {
+                                    var temp = b.data[i * b.row_stride + uj * b.col_stride];
+                                    for (0..uj) |k| {
+                                        temp -= a.data[k * a.row_stride + uj * a.col_stride] * b.data[i * b.row_stride + k * b.col_stride];
+                                    }
+                                    if (non_unit) temp /= a.data[uj * a.row_stride + uj * a.col_stride];
+                                    b.data[i * b.row_stride + uj * b.col_stride] = temp;
+                                }
+                            },
+                            .trans, .conj_trans => {
+                                var j: isize = @intCast(n - 1);
+                                while (j >= 0) : (j -= 1) {
+                                    const uj: usize = @intCast(j);
+                                    var temp = b.data[i * b.row_stride + uj * b.col_stride];
+                                    for (uj + 1..n) |k| {
+                                        temp -= a.data[uj * a.row_stride + k * a.col_stride] * b.data[i * b.row_stride + k * b.col_stride];
+                                    }
+                                    if (non_unit) temp /= a.data[uj * a.row_stride + uj * a.col_stride];
+                                    b.data[i * b.row_stride + uj * b.col_stride] = temp;
+                                }
+                            },
+                        }
+                    },
+                    .lower => {
+                        switch (trans_a) {
+                            .no_trans => {
+                                var j: isize = @intCast(n - 1);
+                                while (j >= 0) : (j -= 1) {
+                                    const uj: usize = @intCast(j);
+                                    var temp = b.data[i * b.row_stride + uj * b.col_stride];
+                                    for (uj + 1..n) |k| {
+                                        temp -= a.data[uj * a.row_stride + k * a.col_stride] * b.data[i * b.row_stride + k * b.col_stride];
+                                    }
+                                    if (non_unit) temp /= a.data[uj * a.row_stride + uj * a.col_stride];
+                                    b.data[i * b.row_stride + uj * b.col_stride] = temp;
+                                }
+                            },
+                            .trans, .conj_trans => {
+                                for (0..n) |uj| {
+                                    var temp = b.data[i * b.row_stride + uj * b.col_stride];
+                                    for (0..uj) |k| {
+                                        temp -= a.data[k * a.row_stride + uj * a.col_stride] * b.data[i * b.row_stride + k * b.col_stride];
+                                    }
+                                    if (non_unit) temp /= a.data[uj * a.row_stride + uj * a.col_stride];
+                                    b.data[i * b.row_stride + uj * b.col_stride] = temp;
+                                }
+                            },
+                        }
+                    },
+                }
+            }
+        },
+    }
+}
+
+test "syrk upper and lower" {
+    const T = f64;
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 3, 2, &[_]T{
+        1.0, 2.0,
+        3.0, 4.0,
+        5.0, 6.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var c = try M.init(std.testing.allocator, 3, 3);
+    defer c.deinit(std.testing.allocator);
+
+    try syrk(T, .upper, .no_trans, 1.0, a, 0.0, &c);
+    // C = A*A^T
+    try std.testing.expectEqual(@as(T, 5.0), try c.get(0, 0));
+    try std.testing.expectEqual(@as(T, 11.0), try c.get(0, 1));
+    try std.testing.expectEqual(@as(T, 17.0), try c.get(0, 2));
+
+    var c2 = try M.init(std.testing.allocator, 2, 2);
+    defer c2.deinit(std.testing.allocator);
+    try syrk(T, .lower, .trans, 1.0, a, 0.0, &c2);
+    // C = A^T*A
+    try std.testing.expectEqual(@as(T, 35.0), try c2.get(0, 0));
+    try std.testing.expectEqual(@as(T, 44.0), try c2.get(1, 0));
+}
+
+test "syr2k basic" {
+    const T = f64;
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 2, 2, &[_]T{
+        1.0, 2.0,
+        3.0, 4.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var b = try M.fromRowSlice(std.testing.allocator, 2, 2, &[_]T{
+        0.5, 1.0,
+        1.5, 2.0,
+    });
+    defer b.deinit(std.testing.allocator);
+    var c = try M.init(std.testing.allocator, 2, 2);
+    defer c.deinit(std.testing.allocator);
+
+    try syr2k(T, .upper, .no_trans, 1.0, a, b, 0.0, &c);
+    // C = A*B^T + B*A^T
+    try std.testing.expectEqual(@as(T, 5.0), try c.get(0, 0));
+    try std.testing.expectEqual(@as(T, 11.0), try c.get(0, 1));
+}
+
+test "trmm left upper non_unit" {
+    const T = f64;
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 3, 3, &[_]T{
+        1.0, 2.0, 3.0,
+        0.0, 1.0, 4.0,
+        0.0, 0.0, 1.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var b = try M.fromRowSlice(std.testing.allocator, 3, 2, &[_]T{
+        1.0, 0.0,
+        0.0, 1.0,
+        0.0, 0.0,
+    });
+    defer b.deinit(std.testing.allocator);
+
+    try trmm(T, .left, .upper, .no_trans, .non_unit, 1.0, a, &b);
+    // First column of B should be first column of A
+    try std.testing.expectEqual(@as(T, 1.0), try b.get(0, 0));
+    try std.testing.expectEqual(@as(T, 2.0), try b.get(0, 1));
+    try std.testing.expectEqual(@as(T, 1.0), try b.get(1, 1));
+}
+
+test "trsm left upper non_unit" {
+    const T = f64;
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 3, 3, &[_]T{
+        2.0, 4.0, 4.0,
+        0.0, 3.0, 6.0,
+        0.0, 0.0, 1.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var b = try M.fromRowSlice(std.testing.allocator, 3, 2, &[_]T{
+        18.0, 9.0,
+        15.0, 12.0,
+        1.0, 1.0,
+    });
+    defer b.deinit(std.testing.allocator);
+
+    try trsm(T, .left, .upper, .no_trans, .non_unit, 1.0, a, &b);
+    // Solution columns are [1,3,1] and [0.5,2,1]
+    try std.testing.expectEqual(@as(T, 1.0), try b.get(0, 0));
+    try std.testing.expectEqual(@as(T, 3.0), try b.get(1, 0));
+    try std.testing.expectEqual(@as(T, 1.0), try b.get(2, 0));
+    try std.testing.expectEqual(@as(T, -1.5), try b.get(0, 1));
+    try std.testing.expectEqual(@as(T, 2.0), try b.get(1, 1));
+    try std.testing.expectEqual(@as(T, 1.0), try b.get(2, 1));
+}

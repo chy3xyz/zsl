@@ -299,3 +299,63 @@ test "gemv shape mismatch" {
 
     try std.testing.expectError(error.ShapeMismatch, gemv(T, .no_trans, 1.0, a, x, 0.0, &y));
 }
+
+pub fn ger(
+    comptime T: type,
+    alpha: T,
+    x: Vector(T),
+    y: Vector(T),
+    a: *Matrix(T),
+) Error!void {
+    _ = util.Float(T);
+    if (a.rows != x.len or a.cols != y.len) return error.ShapeMismatch;
+    if (alpha == 0) return;
+
+    for (0..a.rows) |i| {
+        const tmp = alpha * x.data[i * x.stride];
+        for (0..a.cols) |j| {
+            a.data[i * a.row_stride + j * a.col_stride] += tmp * y.data[j * y.stride];
+        }
+    }
+}
+
+test "ger rank-one update" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 2, 3, &[_]T{
+        1.0, 2.0, 3.0,
+        4.0, 5.0, 6.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 2.0, 3.0 });
+    defer x.deinit(std.testing.allocator);
+    var y = try V.fromSlice(std.testing.allocator, &[_]T{ 0.5, 1.0, 1.5 });
+    defer y.deinit(std.testing.allocator);
+
+    try ger(T, 1.0, x, y, &a);
+    const float = @import("float.zig");
+    // A[0,0] = 1 + 2*0.5 = 2
+    try std.testing.expect(float.approxEqAbs(T, try a.get(0, 0), 2.0, 1e-12));
+    // A[0,1] = 2 + 2*1 = 4
+    try std.testing.expect(float.approxEqAbs(T, try a.get(0, 1), 4.0, 1e-12));
+    // A[1,2] = 6 + 3*1.5 = 10.5
+    try std.testing.expect(float.approxEqAbs(T, try a.get(1, 2), 10.5, 1e-12));
+}
+
+test "ger shape mismatch" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 2, 3, &[_]T{
+        1.0, 2.0, 3.0,
+        4.0, 5.0, 6.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 2.0 });
+    defer x.deinit(std.testing.allocator);
+    var y = try V.fromSlice(std.testing.allocator, &[_]T{ 0.5, 1.0, 1.5 });
+    defer y.deinit(std.testing.allocator);
+
+    try std.testing.expectError(error.ShapeMismatch, ger(T, 1.0, x, y, &a));
+}

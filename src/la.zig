@@ -148,6 +148,10 @@ pub fn Matrix(comptime T: type) type {
                 .col_stride = self.row_stride,
             };
         }
+
+        pub fn rawData(self: Self) []T {
+            return self.data;
+        }
     };
 }
 

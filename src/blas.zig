@@ -6,6 +6,9 @@ const Matrix = @import("la.zig").Matrix;
 
 pub const types = @import("blas/types.zig");
 pub const Transpose = types.Transpose;
+pub const Uplo = types.Uplo;
+pub const Side = types.Side;
+pub const Diagonal = types.Diagonal;
 
 test {
     _ = types;
@@ -630,4 +633,381 @@ test "gemm shape mismatch" {
     defer c.deinit(std.testing.allocator);
 
     try std.testing.expectError(error.ShapeMismatch, gemm(T, .no_trans, .no_trans, 1.0, a, b, 0.0, &c));
+}
+
+// ---------------------------------------------------------------------------
+// Level-2: symmetric and triangular matrix-vector operations
+// ---------------------------------------------------------------------------
+
+pub fn symv(
+    comptime T: type,
+    uplo: Uplo,
+    alpha: T,
+    a: Matrix(T),
+    x: Vector(T),
+    beta: T,
+    y: *Vector(T),
+) Error!void {
+    _ = util.Float(T);
+    if (a.rows != a.cols) return error.ShapeMismatch;
+    if (a.rows != x.len or a.rows != y.len) return error.ShapeMismatch;
+
+    const n = a.rows;
+
+    if (beta == 0) {
+        for (0..n) |i| y.data[i * y.stride] = 0;
+    } else if (beta != 1) {
+        for (0..n) |i| y.data[i * y.stride] *= beta;
+    }
+
+    if (alpha == 0) return;
+
+    for (0..n) |i| {
+        const temp1 = alpha * x.data[i * x.stride];
+        var temp2: T = 0;
+        switch (uplo) {
+            .upper => {
+                for (0..i) |j| {
+                    const a_ij = a.data[j * a.row_stride + i * a.col_stride];
+                    y.data[j * y.stride] += temp1 * a_ij;
+                    temp2 += a_ij * x.data[j * x.stride];
+                }
+                const a_ii = a.data[i * a.row_stride + i * a.col_stride];
+                y.data[i * y.stride] += temp1 * a_ii + alpha * temp2;
+            },
+            .lower => {
+                const a_ii = a.data[i * a.row_stride + i * a.col_stride];
+                y.data[i * y.stride] += temp1 * a_ii;
+                for (i + 1..n) |j| {
+                    const a_ij = a.data[j * a.row_stride + i * a.col_stride];
+                    y.data[j * y.stride] += temp1 * a_ij;
+                    temp2 += a_ij * x.data[j * x.stride];
+                }
+                y.data[i * y.stride] += alpha * temp2;
+            },
+        }
+    }
+}
+
+pub fn syr(
+    comptime T: type,
+    uplo: Uplo,
+    alpha: T,
+    x: Vector(T),
+    a: *Matrix(T),
+) Error!void {
+    _ = util.Float(T);
+    if (a.rows != a.cols) return error.ShapeMismatch;
+    if (a.rows != x.len) return error.ShapeMismatch;
+    if (alpha == 0) return;
+
+    const n = a.rows;
+    switch (uplo) {
+        .upper => {
+            for (0..n) |i| {
+                const temp = alpha * x.data[i * x.stride];
+                for (i..n) |j| {
+                    a.data[i * a.row_stride + j * a.col_stride] += temp * x.data[j * x.stride];
+                }
+            }
+        },
+        .lower => {
+            for (0..n) |i| {
+                const temp = alpha * x.data[i * x.stride];
+                for (0..i + 1) |j| {
+                    a.data[i * a.row_stride + j * a.col_stride] += temp * x.data[j * x.stride];
+                }
+            }
+        },
+    }
+}
+
+pub fn syr2(
+    comptime T: type,
+    uplo: Uplo,
+    alpha: T,
+    x: Vector(T),
+    y: Vector(T),
+    a: *Matrix(T),
+) Error!void {
+    _ = util.Float(T);
+    if (a.rows != a.cols) return error.ShapeMismatch;
+    if (a.rows != x.len or a.rows != y.len) return error.ShapeMismatch;
+    if (alpha == 0) return;
+
+    const n = a.rows;
+    switch (uplo) {
+        .upper => {
+            for (0..n) |i| {
+                const temp1 = alpha * x.data[i * x.stride];
+                const temp2 = alpha * y.data[i * y.stride];
+                for (i..n) |j| {
+                    a.data[i * a.row_stride + j * a.col_stride] +=
+                        temp1 * y.data[j * y.stride] + temp2 * x.data[j * x.stride];
+                }
+            }
+        },
+        .lower => {
+            for (0..n) |i| {
+                const temp1 = alpha * x.data[i * x.stride];
+                const temp2 = alpha * y.data[i * y.stride];
+                for (0..i + 1) |j| {
+                    a.data[i * a.row_stride + j * a.col_stride] +=
+                        temp1 * y.data[j * y.stride] + temp2 * x.data[j * x.stride];
+                }
+            }
+        },
+    }
+}
+
+pub fn trmv(
+    comptime T: type,
+    uplo: Uplo,
+    trans_a: Transpose,
+    diag: Diagonal,
+    a: Matrix(T),
+    x: *Vector(T),
+) Error!void {
+    _ = util.Float(T);
+    if (a.rows != a.cols) return error.ShapeMismatch;
+    if (a.rows != x.len) return error.ShapeMismatch;
+
+    const n = a.rows;
+    const non_unit = diag == .non_unit;
+
+    switch (trans_a) {
+        .no_trans => {
+            switch (uplo) {
+                .upper => {
+                    for (0..n) |ui| {
+                        var temp: T = if (non_unit) a.data[ui * a.row_stride + ui * a.col_stride] * x.data[ui * x.stride] else x.data[ui * x.stride];
+                        for (ui + 1..n) |j| {
+                            temp += a.data[ui * a.row_stride + j * a.col_stride] * x.data[j * x.stride];
+                        }
+                        x.data[ui * x.stride] = temp;
+                    }
+                },
+                .lower => {
+                    var i: isize = @intCast(n - 1);
+                    while (i >= 0) : (i -= 1) {
+                        const ui: usize = @intCast(i);
+                        var temp: T = if (non_unit) a.data[ui * a.row_stride + ui * a.col_stride] * x.data[ui * x.stride] else x.data[ui * x.stride];
+                        for (0..ui) |j| {
+                            temp += a.data[ui * a.row_stride + j * a.col_stride] * x.data[j * x.stride];
+                        }
+                        x.data[ui * x.stride] = temp;
+                    }
+                },
+            }
+        },
+        .trans, .conj_trans => {
+            switch (uplo) {
+                .upper => {
+                    var i: isize = @intCast(n - 1);
+                    while (i >= 0) : (i -= 1) {
+                        const ui: usize = @intCast(i);
+                        const xi = x.data[ui * x.stride];
+                        if (non_unit) x.data[ui * x.stride] *= a.data[ui * a.row_stride + ui * a.col_stride];
+                        for (ui + 1..n) |j| {
+                            x.data[j * x.stride] += a.data[ui * a.row_stride + j * a.col_stride] * xi;
+                        }
+                    }
+                },
+                .lower => {
+                    for (0..n) |ui| {
+                        const xi = x.data[ui * x.stride];
+                        if (non_unit) x.data[ui * x.stride] *= a.data[ui * a.row_stride + ui * a.col_stride];
+                        for (0..ui) |j| {
+                            x.data[j * x.stride] += a.data[ui * a.row_stride + j * a.col_stride] * xi;
+                        }
+                    }
+                },
+            }
+        },
+    }
+}
+
+pub fn trsv(
+    comptime T: type,
+    uplo: Uplo,
+    trans_a: Transpose,
+    diag: Diagonal,
+    a: Matrix(T),
+    x: *Vector(T),
+) Error!void {
+    _ = util.Float(T);
+    if (a.rows != a.cols) return error.ShapeMismatch;
+    if (a.rows != x.len) return error.ShapeMismatch;
+
+    const n = a.rows;
+    const non_unit = diag == .non_unit;
+
+    switch (trans_a) {
+        .no_trans => {
+            switch (uplo) {
+                .upper => {
+                    var i: isize = @intCast(n - 1);
+                    while (i >= 0) : (i -= 1) {
+                        const ui: usize = @intCast(i);
+                        var temp = x.data[ui * x.stride];
+                        for (ui + 1..n) |j| {
+                            temp -= a.data[ui * a.row_stride + j * a.col_stride] * x.data[j * x.stride];
+                        }
+                        if (non_unit) temp /= a.data[ui * a.row_stride + ui * a.col_stride];
+                        x.data[ui * x.stride] = temp;
+                    }
+                },
+                .lower => {
+                    for (0..n) |ui| {
+                        var temp = x.data[ui * x.stride];
+                        for (0..ui) |j| {
+                            temp -= a.data[ui * a.row_stride + j * a.col_stride] * x.data[j * x.stride];
+                        }
+                        if (non_unit) temp /= a.data[ui * a.row_stride + ui * a.col_stride];
+                        x.data[ui * x.stride] = temp;
+                    }
+                },
+            }
+        },
+        .trans, .conj_trans => {
+            switch (uplo) {
+                .upper => {
+                    for (0..n) |ui| {
+                        var temp = x.data[ui * x.stride];
+                        for (0..ui) |j| {
+                            temp -= a.data[j * a.row_stride + ui * a.col_stride] * x.data[j * x.stride];
+                        }
+                        if (non_unit) temp /= a.data[ui * a.row_stride + ui * a.col_stride];
+                        x.data[ui * x.stride] = temp;
+                    }
+                },
+                .lower => {
+                    var i: isize = @intCast(n - 1);
+                    while (i >= 0) : (i -= 1) {
+                        const ui: usize = @intCast(i);
+                        var temp = x.data[ui * x.stride];
+                        for (ui + 1..n) |j| {
+                            temp -= a.data[j * a.row_stride + ui * a.col_stride] * x.data[j * x.stride];
+                        }
+                        if (non_unit) temp /= a.data[ui * a.row_stride + ui * a.col_stride];
+                        x.data[ui * x.stride] = temp;
+                    }
+                },
+            }
+        },
+    }
+}
+
+test "symv upper and lower" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 3, 3, &[_]T{
+        1.0, 2.0, 3.0,
+        2.0, 4.0, 5.0,
+        3.0, 5.0, 6.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 1.0, 1.0, 1.0 });
+    defer x.deinit(std.testing.allocator);
+    var y = try V.init(std.testing.allocator, 3);
+    defer y.deinit(std.testing.allocator);
+
+    try symv(T, .upper, 1.0, a, x, 0.0, &y);
+    const float = @import("float.zig");
+    try std.testing.expect(float.approxEqAbs(T, try y.get(0), 6.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try y.get(1), 11.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try y.get(2), 14.0, 1e-12));
+
+    try symv(T, .lower, 1.0, a, x, 0.0, &y);
+    try std.testing.expect(float.approxEqAbs(T, try y.get(0), 6.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try y.get(1), 11.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try y.get(2), 14.0, 1e-12));
+}
+
+test "syr updates only requested triangle" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.init(std.testing.allocator, 3, 3);
+    defer a.deinit(std.testing.allocator);
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 1.0, 2.0, 3.0 });
+    defer x.deinit(std.testing.allocator);
+
+    try syr(T, .upper, 1.0, x, &a);
+    try std.testing.expectEqual(@as(T, 1.0), try a.get(0, 0));
+    try std.testing.expectEqual(@as(T, 2.0), try a.get(0, 1));
+    try std.testing.expectEqual(@as(T, 0.0), try a.get(1, 0));
+
+    var b = try M.init(std.testing.allocator, 3, 3);
+    defer b.deinit(std.testing.allocator);
+    try syr(T, .lower, 1.0, x, &b);
+    try std.testing.expectEqual(@as(T, 1.0), try b.get(0, 0));
+    try std.testing.expectEqual(@as(T, 2.0), try b.get(1, 0));
+    try std.testing.expectEqual(@as(T, 0.0), try b.get(0, 1));
+}
+
+test "syr2 basic" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.init(std.testing.allocator, 3, 3);
+    defer a.deinit(std.testing.allocator);
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 1.0, 2.0, 3.0 });
+    defer x.deinit(std.testing.allocator);
+    var y = try V.fromSlice(std.testing.allocator, &[_]T{ 0.5, 1.0, 1.5 });
+    defer y.deinit(std.testing.allocator);
+
+    try syr2(T, .upper, 1.0, x, y, &a);
+    const float = @import("float.zig");
+    // A[i,j] = x_i*y_j + y_i*x_j
+    try std.testing.expect(float.approxEqAbs(T, try a.get(0, 0), 1.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try a.get(0, 1), 2.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try a.get(1, 1), 4.0, 1e-12));
+}
+
+test "trmv unit and non_unit" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 3, 3, &[_]T{
+        1.0, 2.0, 3.0,
+        0.0, 1.0, 4.0,
+        0.0, 0.0, 1.0,
+    });
+    defer a.deinit(std.testing.allocator);
+
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 1.0, 1.0, 1.0 });
+    defer x.deinit(std.testing.allocator);
+    try trmv(T, .upper, .no_trans, .non_unit, a, &x);
+    try std.testing.expectEqual(@as(T, 6.0), try x.get(0));
+    try std.testing.expectEqual(@as(T, 5.0), try x.get(1));
+    try std.testing.expectEqual(@as(T, 1.0), try x.get(2));
+
+    var y = try V.fromSlice(std.testing.allocator, &[_]T{ 1.0, 1.0, 1.0 });
+    defer y.deinit(std.testing.allocator);
+    try trmv(T, .upper, .trans, .non_unit, a, &y);
+    try std.testing.expectEqual(@as(T, 1.0), try y.get(0));
+    try std.testing.expectEqual(@as(T, 3.0), try y.get(1));
+    try std.testing.expectEqual(@as(T, 8.0), try y.get(2));
+}
+
+test "trsv solves triangular system" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 3, 3, &[_]T{
+        2.0, 4.0, 4.0,
+        0.0, 3.0, 6.0,
+        0.0, 0.0, 1.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var b = try V.fromSlice(std.testing.allocator, &[_]T{ 18.0, 15.0, 1.0 });
+    defer b.deinit(std.testing.allocator);
+
+    try trsv(T, .upper, .no_trans, .non_unit, a, &b);
+    const float = @import("float.zig");
+    try std.testing.expect(float.approxEqAbs(T, try b.get(0), 1.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try b.get(1), 3.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try b.get(2), 1.0, 1e-12));
 }

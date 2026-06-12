@@ -163,3 +163,139 @@ test "BLAS shape mismatch" {
     defer y.deinit(std.testing.allocator);
     try std.testing.expectError(error.ShapeMismatch, dot(T, x, y));
 }
+
+pub fn gemv(
+    comptime T: type,
+    trans_a: Transpose,
+    alpha: T,
+    a: Matrix(T),
+    x: Vector(T),
+    beta: T,
+    y: *Vector(T),
+) Error!void {
+    _ = util.Float(T);
+
+    const m = a.rows;
+    const n = a.cols;
+
+    switch (trans_a) {
+        .no_trans => {
+            if (m != y.len or n != x.len) return error.ShapeMismatch;
+        },
+        .trans, .conj_trans => {
+            if (n != y.len or m != x.len) return error.ShapeMismatch;
+        },
+    }
+
+    // Form y = beta * y
+    if (beta == 0) {
+        for (0..y.len) |i| {
+            y.data[i * y.stride] = 0;
+        }
+    } else if (beta != 1) {
+        for (0..y.len) |i| {
+            y.data[i * y.stride] *= beta;
+        }
+    }
+
+    if (alpha == 0) return;
+
+    switch (trans_a) {
+        .no_trans => {
+            for (0..m) |i| {
+                var sum: T = 0;
+                for (0..n) |j| {
+                    sum += a.data[i * a.row_stride + j * a.col_stride] * x.data[j * x.stride];
+                }
+                y.data[i * y.stride] += alpha * sum;
+            }
+        },
+        .trans, .conj_trans => {
+            for (0..m) |i| {
+                const tmp = alpha * x.data[i * x.stride];
+                for (0..n) |j| {
+                    y.data[j * y.stride] += tmp * a.data[i * a.row_stride + j * a.col_stride];
+                }
+            }
+        },
+    }
+}
+
+test "gemv no_trans f64" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 2, 3, &[_]T{
+        1.0, 2.0, 3.0,
+        4.0, 5.0, 6.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 1.0, 0.5, 2.0 });
+    defer x.deinit(std.testing.allocator);
+    var y = try V.fromSlice(std.testing.allocator, &[_]T{ 0.0, 0.0 });
+    defer y.deinit(std.testing.allocator);
+
+    try gemv(T, .no_trans, 1.0, a, x, 0.0, &y);
+    const float = @import("float.zig");
+    try std.testing.expect(float.approxEqAbs(T, try y.get(0), 8.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try y.get(1), 18.5, 1e-12));
+}
+
+test "gemv trans f64" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 2, 3, &[_]T{
+        1.0, 2.0,
+        3.0, 4.0,
+        5.0, 6.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 1.0, 0.5 });
+    defer x.deinit(std.testing.allocator);
+    var y = try V.fromSlice(std.testing.allocator, &[_]T{ 0.0, 0.0, 0.0 });
+    defer y.deinit(std.testing.allocator);
+
+    try gemv(T, .trans, 1.0, a, x, 0.0, &y);
+    const float = @import("float.zig");
+    try std.testing.expect(float.approxEqAbs(T, try y.get(0), 3.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try y.get(1), 4.5, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try y.get(2), 6.0, 1e-12));
+}
+
+test "gemv beta accumulation" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 2, 2, &[_]T{
+        1.0, 2.0,
+        3.0, 4.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 1.0, 1.0 });
+    defer x.deinit(std.testing.allocator);
+    var y = try V.fromSlice(std.testing.allocator, &[_]T{ 10.0, 20.0 });
+    defer y.deinit(std.testing.allocator);
+
+    try gemv(T, .no_trans, 1.0, a, x, 2.0, &y);
+    const float = @import("float.zig");
+    try std.testing.expect(float.approxEqAbs(T, try y.get(0), 23.0, 1e-12));
+    try std.testing.expect(float.approxEqAbs(T, try y.get(1), 47.0, 1e-12));
+}
+
+test "gemv shape mismatch" {
+    const T = f64;
+    const V = Vector(T);
+    const M = Matrix(T);
+    var a = try M.fromRowSlice(std.testing.allocator, 2, 3, &[_]T{
+        1.0, 2.0, 3.0,
+        4.0, 5.0, 6.0,
+    });
+    defer a.deinit(std.testing.allocator);
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 1.0, 0.5 });
+    defer x.deinit(std.testing.allocator);
+    var y = try V.fromSlice(std.testing.allocator, &[_]T{ 0.0, 0.0 });
+    defer y.deinit(std.testing.allocator);
+
+    try std.testing.expectError(error.ShapeMismatch, gemv(T, .no_trans, 1.0, a, x, 0.0, &y));
+}

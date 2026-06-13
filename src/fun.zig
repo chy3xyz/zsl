@@ -6,6 +6,8 @@ pub const mod_bessel = @import("fun/mod_bessel.zig");
 pub const misc = @import("fun/misc.zig");
 pub const interp = @import("fun/interp.zig");
 pub const extra = @import("fun/extra.zig");
+pub const complex = @import("fun/complex.zig");
+pub const cgamma = @import("fun/cgamma.zig");
 
 test {
     _ = gamma;
@@ -16,4 +18,6 @@ test {
     _ = misc;
     _ = interp;
     _ = extra;
+    _ = complex;
+    _ = cgamma;
 }

@@ -6,6 +6,7 @@ pub const Error = error{
     DivisionByZero,
     NotImplemented,
     SingularMatrix,
+    NotPositiveDefinite,
     NotConverged,
     NotFitted,
     FileReadError,

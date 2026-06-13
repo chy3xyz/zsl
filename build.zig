@@ -87,6 +87,48 @@ pub fn build(b: *std.Build) void {
     });
     lapack_qr_example_step.dependOn(&b.addRunArtifact(lapack_qr_exe).step);
 
+    const lapack_cholesky_example_step = b.step("example-lapack-cholesky", "Run lapack_cholesky_ops example");
+    const lapack_cholesky_exe = b.addExecutable(.{
+        .name = "lapack_cholesky_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/lapack_cholesky_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    lapack_cholesky_example_step.dependOn(&b.addRunArtifact(lapack_cholesky_exe).step);
+
+    const lapack_eigen_example_step = b.step("example-lapack-eigen", "Run lapack_eigen_ops example");
+    const lapack_eigen_exe = b.addExecutable(.{
+        .name = "lapack_eigen_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/lapack_eigen_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    lapack_eigen_example_step.dependOn(&b.addRunArtifact(lapack_eigen_exe).step);
+
+    const lapack_svd_example_step = b.step("example-lapack-svd", "Run lapack_svd_ops example");
+    const lapack_svd_exe = b.addExecutable(.{
+        .name = "lapack_svd_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/lapack_svd_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    lapack_svd_example_step.dependOn(&b.addRunArtifact(lapack_svd_exe).step);
+
     const eigen_example_step = b.step("example-eigen", "Run eigen_ops example");
     const eigen_exe = b.addExecutable(.{
         .name = "eigen_ops",

@@ -1,6 +1,17 @@
 const std = @import("std");
 const Error = @import("errors.zig").Error;
 
+pub const point = @import("gm/point.zig");
+pub const segment = @import("gm/segment.zig");
+
+pub const Point = point.Point;
+pub const Segment = segment.Segment;
+
+test {
+    _ = point;
+    _ = segment;
+}
+
 /// Minimum distance between coordinates along any dimension.
 const xdelzero: f64 = 1e-10;
 

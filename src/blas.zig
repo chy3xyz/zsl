@@ -355,7 +355,7 @@ test "ger shape mismatch" {
         4.0, 5.0, 6.0,
     });
     defer a.deinit(std.testing.allocator);
-    var x = try V.fromSlice(std.testing.allocator, &[_]T{ 2.0 });
+    var x = try V.fromSlice(std.testing.allocator, &[_]T{2.0});
     defer x.deinit(std.testing.allocator);
     var y = try V.fromSlice(std.testing.allocator, &[_]T{ 0.5, 1.0, 1.5 });
     defer y.deinit(std.testing.allocator);
@@ -1538,7 +1538,7 @@ test "trsm left upper non_unit" {
     var b = try M.fromRowSlice(std.testing.allocator, 3, 2, &[_]T{
         18.0, 9.0,
         15.0, 12.0,
-        1.0, 1.0,
+        1.0,  1.0,
     });
     defer b.deinit(std.testing.allocator);
 

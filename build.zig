@@ -283,7 +283,7 @@ pub fn build(b: *std.Build) void {
     });
     graph_example_step.dependOn(&b.addRunArtifact(graph_exe).step);
 
-    const gm_example_step = b.step("example-gm", "Run gm_ops example");
+    const gm_example_step = b.step("example-gm", "Run gm_ops example (Bins)");
     const gm_exe = b.addExecutable(.{
         .name = "gm_ops",
         .root_module = b.createModule(.{
@@ -296,6 +296,20 @@ pub fn build(b: *std.Build) void {
         }),
     });
     gm_example_step.dependOn(&b.addRunArtifact(gm_exe).step);
+
+    const gm_ps_example_step = b.step("example-gm-ps", "Run gm_point_segment_ops example");
+    const gm_ps_exe = b.addExecutable(.{
+        .name = "gm_point_segment_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/gm_point_segment_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    gm_ps_example_step.dependOn(&b.addRunArtifact(gm_ps_exe).step);
 
     const kmeans_example_step = b.step("example-kmeans", "Run kmeans_ops example");
     const kmeans_exe = b.addExecutable(.{

@@ -55,7 +55,7 @@ pub fn main() !void {
     var rhs = try M.fromRowSlice(allocator, 3, 2, &[_]T{
         18.0, 9.0,
         15.0, 12.0,
-        1.0, 1.0,
+        1.0,  1.0,
     });
     defer rhs.deinit(allocator);
     try zsl.blas.trsm(T, .left, .upper, .no_trans, .non_unit, 1.0, tri2, &rhs);

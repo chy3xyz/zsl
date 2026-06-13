@@ -25,6 +25,11 @@ pub const fft = @import("fft.zig");
 pub const easings = @import("easings.zig");
 pub const inout = @import("inout.zig");
 pub const plot = @import("plot.zig");
+pub const compute = @import("compute.zig");
+pub const cuda = @import("cuda.zig");
+pub const vulkan = @import("vulkan.zig");
+pub const vcl = @import("vcl.zig");
+pub const mpi = @import("mpi.zig");
 
 test {
     _ = util;
@@ -57,4 +62,9 @@ test {
     _ = easings;
     _ = inout;
     _ = plot;
+    _ = compute;
+    _ = cuda;
+    _ = vulkan;
+    _ = vcl;
+    _ = mpi;
 }

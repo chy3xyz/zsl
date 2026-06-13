@@ -619,6 +619,76 @@ pub fn build(b: *std.Build) void {
     });
     h5_example_step.dependOn(&b.addRunArtifact(h5_exe).step);
 
+    const compute_example_step = b.step("example-compute", "Run compute_ops example");
+    const compute_exe = b.addExecutable(.{
+        .name = "compute_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/compute_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    compute_example_step.dependOn(&b.addRunArtifact(compute_exe).step);
+
+    const cuda_example_step = b.step("example-cuda", "Run cuda_ops example");
+    const cuda_exe = b.addExecutable(.{
+        .name = "cuda_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/cuda_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    cuda_example_step.dependOn(&b.addRunArtifact(cuda_exe).step);
+
+    const vulkan_example_step = b.step("example-vulkan", "Run vulkan_ops example");
+    const vulkan_exe = b.addExecutable(.{
+        .name = "vulkan_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/vulkan_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    vulkan_example_step.dependOn(&b.addRunArtifact(vulkan_exe).step);
+
+    const vcl_example_step = b.step("example-vcl", "Run vcl_ops example");
+    const vcl_exe = b.addExecutable(.{
+        .name = "vcl_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/vcl_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    vcl_example_step.dependOn(&b.addRunArtifact(vcl_exe).step);
+
+    const mpi_example_step = b.step("example-mpi", "Run mpi_ops example");
+    const mpi_exe = b.addExecutable(.{
+        .name = "mpi_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/mpi_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    mpi_example_step.dependOn(&b.addRunArtifact(mpi_exe).step);
+
     const benchmark_step = b.step("benchmark", "Run benchmarks");
     const benchmark_exe = b.addExecutable(.{
         .name = "benchmark",

@@ -1,6 +1,6 @@
 # AGENTS.md — Project Guide for AI Coding Agents
 
-> Last updated: 2026-06-13
+> Last updated: 2026-06-13 (after Phase 5 compute/GPU/MPI stubs)
 
 ## 1. Project overview
 
@@ -32,10 +32,12 @@ zsl/
 │   ├── la/
 │   │   ├── matrix_ops.zig # Determinant, inverse, solve
 │   │   ├── jacobi.zig     # Symmetric eigenvalue decomposition
-│   │   └── statistics.zig # Column statistics, correlation, covariance
+│   │   ├── statistics.zig # Column statistics, correlation, covariance
+│   │   └── sparse.zig     # Sparse COO matrix (Triplet, SparseMatrix)
 │   ├── blas.zig           # BLAS Level-1/2/3 operations
 │   ├── blas/
-│   │   └── types.zig      # Transpose enum
+│   │   ├── types.zig      # Transpose enum
+│   │   └── complex.zig    # Complex BLAS (caxpy/cdot/cgemv/cgemm)
 │   ├── lapack.zig         # LAPACK re-exports
 │   ├── lapack/
 │   │   ├── lu.zig         # LU factorization / linear solve
@@ -60,7 +62,8 @@ zsl/
 │   │   └── binning.zig    # cut / qcut
 │   ├── model_selection.zig # Model-selection re-exports
 │   ├── model_selection/
-│   │   └── split.zig      # train_test_split / k_fold_split
+│   │   ├── split.zig      # train_test_split / k_fold_split
+│   │   └── cross_validation.zig # KFold / StratifiedKFold / LeaveOneOut / ShuffleSplit
 │   ├── quaternion.zig     # Quaternion math
 │   ├── noise.zig          # Perlin / Simplex noise
 │   ├── consts.zig         # Physical / numeric constants re-exports
@@ -79,9 +82,16 @@ zsl/
 │   │   ├── mod_bessel.zig # I/K modified Bessel functions
 │   │   ├── misc.zig       # choose / fib / hypot
 │   │   ├── interp.zig     # Chebyshev / interpolation
+│   │   ├── complex.zig    # Generic Complex(T) arithmetic
+│   │   ├── cgamma.zig     # Complex Gamma / log-Gamma
+│   │   ├── sinusoid.zig   # Sinusoid evaluation
 │   │   └── extra.zig      # beta / binomial / logistic / activations
 │   ├── graph.zig          # Graph algorithms
-│   ├── gm.zig             # Geometry spatial bins
+│   ├── gm.zig             # Geometry re-exports
+│   ├── gm/
+│   │   ├── bins.zig       # Spatial bins
+│   │   ├── point.zig      # 2D/3D point
+│   │   └── segment.zig    # Line segment / point-to-segment distance
 │   ├── ml.zig             # Machine learning re-exports
 │   ├── ml/
 │   │   ├── data.zig       # Data container
@@ -94,14 +104,22 @@ zsl/
 │   │   ├── svm.zig        # Support Vector Machine classifier
 │   │   ├── decision_tree.zig # Classification decision tree
 │   │   ├── lasso.zig      # L1-regularized regression
-│   │   └── random_forest.zig # Ensemble of decision trees
+│   │   ├── ridge.zig      # L2-regularized regression
+│   │   ├── elastic_net.zig # L1+L2 regression
+│   │   ├── random_forest.zig # Ensemble of decision trees
+│   │   └── nlp/           # Natural-language processing
+│   │       ├── tokenizer.zig
+│   │       ├── count_vectorizer.zig
+│   │       ├── tf_idf.zig
+│   │       └── lancaster_stemmer.zig
 │   ├── deriv.zig          # Numerical derivatives
 │   ├── diff.zig           # Automatic derivative step sizing
 │   ├── fft.zig            # Fast Fourier Transform
 │   ├── easings.zig        # Easing functions
 │   ├── inout.zig          # I/O re-exports
 │   ├── inout/
-│   │   └── csv.zig        # CSV reader/writer
+│   │   ├── csv.zig        # CSV reader/writer
+│   │   └── h5.zig         # HDF5 reader/writer stub + optional C binding
 │   ├── plot.zig           # Plotting re-exports
 │   └── plot/
 │       ├── plot.zig       # Plot core and HTML assembly
@@ -109,6 +127,17 @@ zsl/
 │       ├── trace.zig      # Trace types, Marker, Line, JSON writer
 │       ├── ml_plots.zig   # ML visualization helpers
 │       └── show.zig       # save_html / show
+│   ├── compute.zig        # Backend-agnostic compute dispatch
+│   ├── compute/
+│   │   ├── context.zig    # ComputeContext / Backend enum
+│   │   ├── backend.zig    # ComputeBackend vtable interface
+│   │   ├── backend_cpu.zig# CPU backend (gemm/gemv/activations/layernorm)
+│   │   ├── dispatch.zig   # ComputeDispatch
+│   │   └── layout.zig     # row/column-major helpers
+│   ├── cuda.zig           # CUDA backend stub
+│   ├── vulkan.zig         # Vulkan backend stub
+│   ├── vcl.zig            # OpenCL/VCL backend stub
+│   └── mpi.zig            # MPI wrapper stub
 └── examples/
     ├── vector_ops.zig     # Vector BLAS demo
     ├── matrix_ops.zig     # Dense matrix determinant / inverse / solve demo
@@ -143,7 +172,18 @@ zsl/
     ├── easings_ops.zig    # Easings demo
     ├── csv_ops.zig        # CSV demo
     ├── ml_advanced_ops.zig # Logistic regression / advanced ML demo
-    └── plot_ops.zig       # Plotly HTML plotting demo
+    ├── nlp_ops.zig        # NLP demo
+    ├── cross_validation_ops.zig # Cross-validation demo
+    ├── ridge_ops.zig      # Ridge regression demo
+    ├── elastic_net_ops.zig # ElasticNet regression demo
+    ├── plot_ops.zig       # Plotly HTML plotting demo
+    ├── fun_misc_ops.zig   # Interpolation / sinusoid demo
+    ├── h5_ops.zig         # HDF5 I/O demo
+    ├── compute_ops.zig    # Compute dispatch demo
+    ├── cuda_ops.zig       # CUDA backend stub demo
+    ├── vulkan_ops.zig     # Vulkan backend stub demo
+    ├── vcl_ops.zig        # OpenCL/VCL backend stub demo
+    └── mpi_ops.zig        # MPI wrapper stub demo
 ```
 
 ## 4. Build and test commands
@@ -162,6 +202,18 @@ zig build example-easings        # run easings_ops demo
 zig build example-csv    # run csv_ops demo
 zig build example-ml-advanced   # run ml_advanced_ops demo
 zig build example-plot   # run plot_ops example (writes zig-out/plot_ops.html)
+zig build example-nlp
+zig build example-cross-validation
+zig build example-ridge
+zig build example-elastic-net
+zig build example-fun-misc
+zig build example-h5
+zig build example-compute
+zig build example-cuda
+zig build example-vulkan
+zig build example-vcl
+zig build example-mpi
+zig build benchmark      # run BLAS/LAPACK benchmarks
 ```
 
 ## 5. Code style guidelines

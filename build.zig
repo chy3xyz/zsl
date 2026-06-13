@@ -521,6 +521,62 @@ pub fn build(b: *std.Build) void {
     });
     ml_advanced_example_step.dependOn(&b.addRunArtifact(ml_advanced_exe).step);
 
+    const nlp_example_step = b.step("example-nlp", "Run nlp_ops example");
+    const nlp_exe = b.addExecutable(.{
+        .name = "nlp_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/nlp_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    nlp_example_step.dependOn(&b.addRunArtifact(nlp_exe).step);
+
+    const cross_validation_example_step = b.step("example-cross-validation", "Run cross_validation_ops example");
+    const cross_validation_exe = b.addExecutable(.{
+        .name = "cross_validation_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/cross_validation_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    cross_validation_example_step.dependOn(&b.addRunArtifact(cross_validation_exe).step);
+
+    const ridge_example_step = b.step("example-ridge", "Run ridge_ops example");
+    const ridge_exe = b.addExecutable(.{
+        .name = "ridge_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/ridge_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    ridge_example_step.dependOn(&b.addRunArtifact(ridge_exe).step);
+
+    const elastic_net_example_step = b.step("example-elastic-net", "Run elastic_net_ops example");
+    const elastic_net_exe = b.addExecutable(.{
+        .name = "elastic_net_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/elastic_net_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    elastic_net_example_step.dependOn(&b.addRunArtifact(elastic_net_exe).step);
+
     const plot_example_step = b.step("example-plot", "Run plot_ops example");
     const plot_exe = b.addExecutable(.{
         .name = "plot_ops",

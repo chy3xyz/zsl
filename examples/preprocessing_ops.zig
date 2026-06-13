@@ -47,4 +47,31 @@ pub fn main() !void {
         allocator.free(bins);
     }
     std.debug.print("cut bins: {any}\n", .{bins});
+
+    // --- RobustScaler demo ---
+    var robust = prep.RobustScaler.init(allocator);
+    defer robust.deinit();
+
+    var x_robust = try M.fromRowSlice(allocator, 6, 1, &[_]f64{
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        100.0,
+    });
+    defer x_robust.deinit(allocator);
+
+    var x_robust_scaled = try robust.fit_transform(x_robust);
+    defer x_robust_scaled.deinit(allocator);
+    std.debug.print("RobustScaler median: {any}\n", .{robust.median_});
+    std.debug.print("RobustScaler IQR: {any}\n", .{robust.iqr_});
+    std.debug.print("RobustScaler scaled data: {any}\n", .{x_robust_scaled.rawData()});
+
+    // --- digitize demo ---
+    const digitize_values = &[_]f64{ 0.5, 1.5, 2.5, 3.5 };
+    const digitize_bins = &[_]f64{ 1.0, 2.0, 3.0 };
+    const indices = try prep.digitize(allocator, digitize_values, digitize_bins);
+    defer allocator.free(indices);
+    std.debug.print("digitize indices: {any}\n", .{indices});
 }

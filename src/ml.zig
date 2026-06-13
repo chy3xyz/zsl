@@ -9,6 +9,9 @@ pub const svm = @import("ml/svm.zig");
 pub const decision_tree = @import("ml/decision_tree.zig");
 pub const lasso = @import("ml/lasso.zig");
 pub const random_forest = @import("ml/random_forest.zig");
+pub const nlp = @import("ml/nlp.zig");
+pub const ridge = @import("ml/ridge.zig");
+pub const elastic_net = @import("ml/elastic_net.zig");
 
 test {
     _ = data;
@@ -22,4 +25,7 @@ test {
     _ = decision_tree;
     _ = lasso;
     _ = random_forest;
+    _ = nlp;
+    _ = ridge;
+    _ = elastic_net;
 }

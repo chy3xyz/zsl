@@ -1,0 +1,40 @@
+name: Zig Lint
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**.zig'
+      - '**.md'
+      - '.github/workflows/zig-lint.yml'
+
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '**.zig'
+      - '**.md'
+      - '.github/workflows/zig-lint.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout zsl
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.17.0-dev.813+2153f8143
+
+      - name: Check formatting
+        run: zig fmt --check src/ examples/ build.zig benchmarks/

@@ -618,4 +618,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
     h5_example_step.dependOn(&b.addRunArtifact(h5_exe).step);
+
+    const benchmark_step = b.step("benchmark", "Run benchmarks");
+    const benchmark_exe = b.addExecutable(.{
+        .name = "benchmark",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("benchmarks/main.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    benchmark_step.dependOn(&b.addRunArtifact(benchmark_exe).step);
 }

@@ -1,0 +1,38 @@
+name: Deploy Documentation
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout zsl
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.17.0-dev.813+2153f8143
+
+      - name: Build project
+        run: zig build
+
+      - name: Generate docs placeholder
+        run: |
+          mkdir -p zig-out/docs
+          echo "zsl documentation placeholder" > zig-out/docs/index.html
+
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: zig-out/docs/
+          retention-days: 14

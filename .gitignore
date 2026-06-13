@@ -4,3 +4,4 @@ zig-out/
 *.html
 _ref/
 docs/superpowers/
+__pycache__/

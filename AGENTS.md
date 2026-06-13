@@ -1,6 +1,6 @@
 # AGENTS.md — Project Guide for AI Coding Agents
 
-> Last updated: 2026-06-12
+> Last updated: 2026-06-13
 
 ## 1. Project overview
 
@@ -73,7 +73,8 @@ zsl/
 │   │   ├── bessel.zig     # J/Y Bessel functions
 │   │   ├── mod_bessel.zig # I/K modified Bessel functions
 │   │   ├── misc.zig       # choose / fib / hypot
-│   │   └── interp.zig     # Chebyshev / interpolation
+│   │   ├── interp.zig     # Chebyshev / interpolation
+│   │   └── extra.zig      # beta / binomial / logistic / activations
 │   ├── graph.zig          # Graph algorithms
 │   ├── gm.zig             # Geometry spatial bins
 │   ├── ml.zig             # Machine learning re-exports

@@ -5,6 +5,20 @@ const ScatterTrace = @import("trace.zig").ScatterTrace;
 const LineTrace = @import("trace.zig").LineTrace;
 const BarTrace = @import("trace.zig").BarTrace;
 const HeatmapTrace = @import("trace.zig").HeatmapTrace;
+const PieTrace = @import("trace.zig").PieTrace;
+const SurfaceTrace = @import("trace.zig").SurfaceTrace;
+const BoxTrace = @import("trace.zig").BoxTrace;
+const ViolinTrace = @import("trace.zig").ViolinTrace;
+const HistogramTrace = @import("trace.zig").HistogramTrace;
+const Histogram2dTrace = @import("trace.zig").Histogram2dTrace;
+const ContourTrace = @import("trace.zig").ContourTrace;
+const OHLCTrace = @import("trace.zig").OHLCTrace;
+const CandlestickTrace = @import("trace.zig").CandlestickTrace;
+const WaterfallTrace = @import("trace.zig").WaterfallTrace;
+const SunburstTrace = @import("trace.zig").SunburstTrace;
+const TreemapTrace = @import("trace.zig").TreemapTrace;
+const SankeyTrace = @import("trace.zig").SankeyTrace;
+const TableTrace = @import("trace.zig").TableTrace;
 
 const html_template =
     \\<!DOCTYPE html>
@@ -203,6 +217,139 @@ pub const Plot = struct {
 
     pub fn heatmap(self: *Plot, t: HeatmapTrace) error{OutOfMemory}!void {
         try self.traces.append(self.allocator, Trace{ .heatmap = t });
+    }
+
+    pub fn pie(self: *Plot, labels: []const []const u8, values: []const f64) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .pie = .{ .labels = labels, .values = values } });
+    }
+
+    pub fn surface(self: *Plot, z: []const []const f64) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .surface = .{ .z = z } });
+    }
+
+    pub fn box(self: *Plot, y: []const f64, name: []const u8) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .box = .{ .y = y, .name = name } });
+    }
+
+    pub fn violin(self: *Plot, y: []const f64, name: []const u8) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .violin = .{ .y = y, .name = name } });
+    }
+
+    pub fn histogram(self: *Plot, x: []const f64) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .histogram = .{ .x = x } });
+    }
+
+    pub fn histogram2d(self: *Plot, x: []const f64, y: []const f64) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .histogram2d = .{ .x = x, .y = y } });
+    }
+
+    pub fn contour(self: *Plot, z: []const []const f64) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .contour = .{ .z = z } });
+    }
+
+    pub fn ohlc(
+        self: *Plot,
+        open: []const f64,
+        high: []const f64,
+        low: []const f64,
+        close: []const f64,
+        x: []const []const u8,
+    ) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .ohlc = .{
+            .open = open,
+            .high = high,
+            .low = low,
+            .close = close,
+            .x = x,
+        } });
+    }
+
+    pub fn candlestick(
+        self: *Plot,
+        open: []const f64,
+        high: []const f64,
+        low: []const f64,
+        close: []const f64,
+        x: []const []const u8,
+    ) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .candlestick = .{
+            .open = open,
+            .high = high,
+            .low = low,
+            .close = close,
+            .x = x,
+        } });
+    }
+
+    pub fn waterfall(
+        self: *Plot,
+        x: []const []const u8,
+        y: []const f64,
+        measure: []const []const u8,
+    ) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .waterfall = .{
+            .x = x,
+            .y = y,
+            .measure = measure,
+        } });
+    }
+
+    pub fn sunburst(
+        self: *Plot,
+        ids: []const []const u8,
+        labels: []const []const u8,
+        parents: []const []const u8,
+        values: []const f64,
+    ) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .sunburst = .{
+            .ids = ids,
+            .labels = labels,
+            .parents = parents,
+            .values = values,
+        } });
+    }
+
+    pub fn treemap(
+        self: *Plot,
+        ids: []const []const u8,
+        labels: []const []const u8,
+        parents: []const []const u8,
+        values: []const f64,
+    ) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .treemap = .{
+            .ids = ids,
+            .labels = labels,
+            .parents = parents,
+            .values = values,
+        } });
+    }
+
+    pub fn sankey(
+        self: *Plot,
+        node_labels: []const []const u8,
+        source: []const usize,
+        target: []const usize,
+        value: []const f64,
+    ) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .sankey = .{
+            .node = .{ .label = node_labels },
+            .link = .{
+                .source = source,
+                .target = target,
+                .value = value,
+            },
+        } });
+    }
+
+    pub fn table(
+        self: *Plot,
+        header: []const []const u8,
+        cells: []const []const []const u8,
+    ) error{OutOfMemory}!void {
+        try self.traces.append(self.allocator, Trace{ .table = .{
+            .header = header,
+            .cells = cells,
+        } });
     }
 
     pub fn set_layout(self: *Plot, l: Layout) void {
@@ -427,4 +574,111 @@ test "Plot.to_html works with bar trace" {
     defer allocator.free(html);
 
     try std.testing.expect(std.mem.indexOf(u8, html, "\"type\":\"bar\"") != null);
+}
+
+test "Plot.to_html works with pie trace" {
+    const allocator = std.testing.allocator;
+    var plot = try Plot.init(allocator);
+    defer plot.deinit();
+
+    try plot.pie(&.{ "A", "B", "C" }, &.{ 10, 20, 30 });
+
+    const html = try plot.to_html();
+    defer allocator.free(html);
+
+    try std.testing.expect(std.mem.indexOf(u8, html, "\"type\":\"pie\"") != null);
+    try std.testing.expect(std.mem.indexOf(u8, html, "\"labels\":[\"A\",\"B\",\"C\"]") != null);
+}
+
+test "Plot.to_html works with box trace" {
+    const allocator = std.testing.allocator;
+    var plot = try Plot.init(allocator);
+    defer plot.deinit();
+
+    try plot.box(&.{ 1, 2, 3, 4, 5 }, "group1");
+
+    const html = try plot.to_html();
+    defer allocator.free(html);
+
+    try std.testing.expect(std.mem.indexOf(u8, html, "\"type\":\"box\"") != null);
+    try std.testing.expect(std.mem.indexOf(u8, html, "\"name\":\"group1\"") != null);
+}
+
+test "Plot.to_html works with histogram trace" {
+    const allocator = std.testing.allocator;
+    var plot = try Plot.init(allocator);
+    defer plot.deinit();
+
+    try plot.histogram(&.{ 1, 2, 2, 3, 3, 3 });
+
+    const html = try plot.to_html();
+    defer allocator.free(html);
+
+    try std.testing.expect(std.mem.indexOf(u8, html, "\"type\":\"histogram\"") != null);
+}
+
+test "Plot.to_html works with sankey trace" {
+    const allocator = std.testing.allocator;
+    var plot = try Plot.init(allocator);
+    defer plot.deinit();
+
+    try plot.sankey(
+        &.{ "A", "B", "C" },
+        &.{ 0, 1 },
+        &.{ 1, 2 },
+        &.{ 8, 4 },
+    );
+
+    const html = try plot.to_html();
+    defer allocator.free(html);
+
+    try std.testing.expect(std.mem.indexOf(u8, html, "\"type\":\"sankey\"") != null);
+    try std.testing.expect(std.mem.indexOf(u8, html, "\"source\":[0,1]") != null);
+}
+
+test "Plot.to_html works with table trace" {
+    const allocator = std.testing.allocator;
+    var plot = try Plot.init(allocator);
+    defer plot.deinit();
+
+    try plot.table(
+        &.{ "Name", "Value" },
+        &.{
+            &.{ "A", "1" },
+            &.{ "B", "2" },
+        },
+    );
+
+    const html = try plot.to_html();
+    defer allocator.free(html);
+
+    try std.testing.expect(std.mem.indexOf(u8, html, "\"type\":\"table\"") != null);
+    try std.testing.expect(std.mem.indexOf(u8, html, "\"header\":{\"values\":[\"Name\",\"Value\"]}") != null);
+}
+
+test "Plot.to_html returns InvalidDimension for mismatched pie data" {
+    const allocator = std.testing.allocator;
+    var plot = try Plot.init(allocator);
+    defer plot.deinit();
+
+    try plot.pie(&.{ "A", "B" }, &.{10});
+
+    try std.testing.expectError(error.InvalidDimension, plot.to_html());
+}
+
+test "Plot.to_html works with waterfall trace" {
+    const allocator = std.testing.allocator;
+    var plot = try Plot.init(allocator);
+    defer plot.deinit();
+
+    try plot.waterfall(
+        &.{ "Start", "Increase", "Total" },
+        &.{ 10, 20, 30 },
+        &.{ "relative", "relative", "total" },
+    );
+
+    const html = try plot.to_html();
+    defer allocator.free(html);
+
+    try std.testing.expect(std.mem.indexOf(u8, html, "\"type\":\"waterfall\"") != null);
 }

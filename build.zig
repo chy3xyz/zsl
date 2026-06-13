@@ -590,4 +590,32 @@ pub fn build(b: *std.Build) void {
         }),
     });
     plot_example_step.dependOn(&b.addRunArtifact(plot_exe).step);
+
+    const fun_misc_example_step = b.step("example-fun-misc", "Run fun_misc_ops example");
+    const fun_misc_exe = b.addExecutable(.{
+        .name = "fun_misc_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/fun_misc_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    fun_misc_example_step.dependOn(&b.addRunArtifact(fun_misc_exe).step);
+
+    const h5_example_step = b.step("example-h5", "Run h5_ops example");
+    const h5_exe = b.addExecutable(.{
+        .name = "h5_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/h5_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    h5_example_step.dependOn(&b.addRunArtifact(h5_exe).step);
 }

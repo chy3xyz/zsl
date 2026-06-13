@@ -1,5 +1,7 @@
 const std = @import("std");
 const Plot = @import("plot.zig").Plot;
+const HeatmapTrace = @import("trace.zig").HeatmapTrace;
+const LineTrace = @import("trace.zig").LineTrace;
 const Error = @import("../errors.zig").Error;
 
 /// Build a confusion-matrix heatmap plot.
@@ -268,4 +270,131 @@ test "feature_importance falls back when names shorter than importances" {
     const html = try plt.to_html();
     defer plt.allocator.free(html);
     try std.testing.expect(std.mem.indexOf(u8, html, "Feature 2") != null);
+}
+
+/// Free memory allocated by `confusion_matrix_trace`.
+/// `trace.z` must be the rectangular matrix produced by that function.
+pub fn deinit_confusion_matrix_trace(allocator: std.mem.Allocator, trace: HeatmapTrace) void {
+    if (trace.z.len == 0) return;
+    const cols = trace.z[0].len;
+    const flat_len = trace.z.len * cols;
+    const flat_ptr: [*]f64 = @constCast(trace.z[0].ptr);
+    allocator.free(flat_ptr[0..flat_len]);
+    allocator.free(trace.z);
+}
+
+/// Build a confusion-matrix `HeatmapTrace` from true and predicted label arrays.
+/// The returned trace owns its `z` matrix; free with `deinit_confusion_matrix_trace`.
+pub fn confusion_matrix_trace(
+    allocator: std.mem.Allocator,
+    y_true: []const usize,
+    y_pred: []const usize,
+    labels: []const []const u8,
+) Error!HeatmapTrace {
+    if (y_true.len != y_pred.len) return error.InvalidDimension;
+    if (labels.len == 0) return error.InvalidDimension;
+    const n = labels.len;
+
+    const z_flat = try allocator.alloc(f64, n * n);
+    errdefer allocator.free(z_flat);
+    @memset(z_flat, 0);
+
+    const z_rows = try allocator.alloc([]const f64, n);
+    errdefer allocator.free(z_rows);
+    for (0..n) |i| z_rows[i] = z_flat[i * n .. (i + 1) * n];
+
+    for (y_true, y_pred) |yt, yp| {
+        if (yt >= n or yp >= n) return error.IndexOutOfBounds;
+        z_flat[yt * n + yp] += 1;
+    }
+
+    return .{
+        .z = z_rows,
+        .x = labels,
+        .y = labels,
+        .colorscale = "Blues",
+    };
+}
+
+/// Build a ROC-curve `LineTrace` from false-positive and true-positive rates.
+pub fn roc_curve_trace(fpr: []const f64, tpr: []const f64) Error!LineTrace {
+    if (fpr.len != tpr.len) return error.InvalidDimension;
+    return .{
+        .x = fpr,
+        .y = tpr,
+        .mode = .lines,
+        .line = .{ .color = "#1f77b4", .width = 2 },
+    };
+}
+
+/// Build a precision-recall-curve `LineTrace`.
+pub fn precision_recall_curve_trace(precision: []const f64, recall: []const f64) Error!LineTrace {
+    if (precision.len != recall.len) return error.InvalidDimension;
+    return .{
+        .x = recall,
+        .y = precision,
+        .mode = .lines,
+        .line = .{ .color = "#2ca02c", .width = 2 },
+    };
+}
+
+test "confusion_matrix_trace builds correct heatmap" {
+    const allocator = std.testing.allocator;
+    const y_true = &[_]usize{ 0, 1, 0, 1, 0, 0 };
+    const y_pred = &[_]usize{ 0, 1, 1, 1, 0, 0 };
+    const labels = &[_][]const u8{ "Neg", "Pos" };
+
+    const trace = try confusion_matrix_trace(allocator, y_true, y_pred, labels);
+    defer deinit_confusion_matrix_trace(allocator, trace);
+
+    try std.testing.expectEqual(@as(usize, 2), trace.z.len);
+    try std.testing.expectEqual(@as(usize, 2), trace.z[0].len);
+    try std.testing.expectEqual(@as(f64, 3), trace.z[0][0]); // true Neg, pred Neg
+    try std.testing.expectEqual(@as(f64, 1), trace.z[0][1]); // true Neg, pred Pos
+    try std.testing.expectEqual(@as(f64, 0), trace.z[1][0]); // true Pos, pred Neg
+    try std.testing.expectEqual(@as(f64, 2), trace.z[1][1]); // true Pos, pred Pos
+}
+
+test "confusion_matrix_trace rejects mismatched lengths" {
+    const allocator = std.testing.allocator;
+    const y_true = &[_]usize{ 0, 1 };
+    const y_pred = &[_]usize{0};
+    const labels = &[_][]const u8{ "A", "B" };
+    try std.testing.expectError(error.InvalidDimension, confusion_matrix_trace(allocator, y_true, y_pred, labels));
+}
+
+test "confusion_matrix_trace rejects out-of-bounds labels" {
+    const allocator = std.testing.allocator;
+    const y_true = &[_]usize{ 0, 2 };
+    const y_pred = &[_]usize{ 0, 1 };
+    const labels = &[_][]const u8{ "A", "B" };
+    try std.testing.expectError(error.IndexOutOfBounds, confusion_matrix_trace(allocator, y_true, y_pred, labels));
+}
+
+test "roc_curve_trace builds line trace" {
+    const fpr = &[_]f64{ 0.0, 0.1, 0.5, 1.0 };
+    const tpr = &[_]f64{ 0.0, 0.4, 0.8, 1.0 };
+    const trace = try roc_curve_trace(fpr, tpr);
+    try std.testing.expectEqualSlices(f64, fpr, trace.x);
+    try std.testing.expectEqualSlices(f64, tpr, trace.y);
+}
+
+test "roc_curve_trace rejects mismatched lengths" {
+    const fpr = &[_]f64{ 0.0, 0.1 };
+    const tpr = &[_]f64{0.0};
+    try std.testing.expectError(error.InvalidDimension, roc_curve_trace(fpr, tpr));
+}
+
+test "precision_recall_curve_trace builds line trace" {
+    const precision = &[_]f64{ 1.0, 0.8, 0.6, 0.4 };
+    const recall = &[_]f64{ 0.0, 0.3, 0.6, 1.0 };
+    const trace = try precision_recall_curve_trace(precision, recall);
+    try std.testing.expectEqualSlices(f64, recall, trace.x);
+    try std.testing.expectEqualSlices(f64, precision, trace.y);
+}
+
+test "precision_recall_curve_trace rejects mismatched lengths" {
+    const precision = &[_]f64{ 1.0, 0.8 };
+    const recall = &[_]f64{0.0};
+    try std.testing.expectError(error.InvalidDimension, precision_recall_curve_trace(precision, recall));
 }

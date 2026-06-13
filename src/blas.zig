@@ -5,6 +5,7 @@ const Vector = @import("la.zig").Vector;
 const Matrix = @import("la.zig").Matrix;
 
 pub const types = @import("blas/types.zig");
+pub const complex = @import("blas/complex.zig");
 pub const Transpose = types.Transpose;
 pub const Uplo = types.Uplo;
 pub const Side = types.Side;
@@ -12,6 +13,7 @@ pub const Diagonal = types.Diagonal;
 
 test {
     _ = types;
+    _ = complex;
 }
 
 fn checkSameLengthVectors(comptime T: type, a: Vector(T), b: Vector(T)) Error!void {

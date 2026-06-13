@@ -5,6 +5,10 @@ const Error = @import("errors.zig").Error;
 pub const matrix_ops = @import("la/matrix_ops.zig");
 pub const jacobi = @import("la/jacobi.zig");
 pub const statistics = @import("la/statistics.zig");
+pub const sparse = @import("la/sparse.zig");
+
+pub const Triplet = sparse.Triplet;
+pub const SparseMatrix = sparse.SparseMatrix;
 
 pub fn Vector(comptime T: type) type {
     _ = util.Float(T);
@@ -254,4 +258,11 @@ test "Matrix transpose is a view" {
     try std.testing.expectEqual(7.0, try mt.get(2, 0));
     try std.testing.expectEqual(3, mt.rows);
     try std.testing.expectEqual(2, mt.cols);
+}
+
+test {
+    _ = matrix_ops;
+    _ = jacobi;
+    _ = statistics;
+    _ = sparse;
 }

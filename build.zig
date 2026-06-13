@@ -283,6 +283,34 @@ pub fn build(b: *std.Build) void {
     });
     graph_example_step.dependOn(&b.addRunArtifact(graph_exe).step);
 
+    const sparse_example_step = b.step("example-sparse", "Run sparse_ops example");
+    const sparse_exe = b.addExecutable(.{
+        .name = "sparse_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/sparse_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    sparse_example_step.dependOn(&b.addRunArtifact(sparse_exe).step);
+
+    const complex_blas_example_step = b.step("example-complex-blas", "Run complex_blas_ops example");
+    const complex_blas_exe = b.addExecutable(.{
+        .name = "complex_blas_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/complex_blas_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    complex_blas_example_step.dependOn(&b.addRunArtifact(complex_blas_exe).step);
+
     const gm_example_step = b.step("example-gm", "Run gm_ops example (Bins)");
     const gm_exe = b.addExecutable(.{
         .name = "gm_ops",

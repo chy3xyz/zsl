@@ -73,6 +73,20 @@ pub fn build(b: *std.Build) void {
     });
     lapack_example_step.dependOn(&b.addRunArtifact(lapack_exe).step);
 
+    const lapack_qr_example_step = b.step("example-lapack-qr", "Run lapack_qr_ops example");
+    const lapack_qr_exe = b.addExecutable(.{
+        .name = "lapack_qr_ops",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/lapack_qr_ops.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zsl", .module = zsl_mod },
+            },
+        }),
+    });
+    lapack_qr_example_step.dependOn(&b.addRunArtifact(lapack_qr_exe).step);
+
     const eigen_example_step = b.step("example-eigen", "Run eigen_ops example");
     const eigen_exe = b.addExecutable(.{
         .name = "eigen_ops",

@@ -38,7 +38,9 @@ zsl/
 │   │   └── types.zig      # Transpose enum
 │   ├── lapack.zig         # LAPACK re-exports
 │   ├── lapack/
-│   │   └── lu.zig         # LU factorization / linear solve
+│   │   ├── lu.zig         # LU factorization / linear solve
+│   │   ├── helpers.zig    # QR helper routines (dlapy2, dlarfg, dlarf)
+│   │   └── qr.zig         # QR factorization (dgeqr2, dorg2r, qr wrapper)
 │   ├── metrics.zig        # Classification / regression metrics re-exports
 │   ├── metrics/
 │   │   ├── classification.zig # Binary classification metrics
@@ -109,6 +111,7 @@ zsl/
     ├── matrix_ops.zig     # Dense matrix determinant / inverse / solve demo
     ├── blas_core.zig      # Symmetric/triangular BLAS demo
     ├── lapack_solve.zig   # LAPACK linear solver demo
+    ├── lapack_qr_ops.zig  # LAPACK QR factorization demo
     ├── eigen_ops.zig      # Symmetric eigenvalue decomposition demo
     ├── statistics_ops.zig # Statistics demo
     ├── metrics_ops.zig    # Metrics demo
@@ -144,8 +147,9 @@ zig build test           # run all unit tests
 zig build example        # build and run examples/matrix_ops.zig
 zig build example-vector # build and run examples/vector_ops.zig
 zig build example-blas   # build and run examples/blas_core.zig
-zig build example-lapack # build and run examples/lapack_solve.zig
-zig build example-easings # run easings_ops demo
+zig build example-lapack    # build and run examples/lapack_solve.zig
+zig build example-lapack-qr # build and run examples/lapack_qr_ops.zig
+zig build example-easings   # run easings_ops demo
 zig build example-csv    # run csv_ops demo
 zig build example-ml-advanced   # run ml_advanced_ops demo
 zig build example-plot   # run plot_ops example (writes zig-out/plot_ops.html)

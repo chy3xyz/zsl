@@ -5,6 +5,12 @@ pub const Error = error{
     IndexOutOfBounds,
     DivisionByZero,
     NotImplemented,
+    SingularMatrix,
+    NotConverged,
+    NotFitted,
+    FileReadError,
+    FileWriteError,
+    ParseError,
 };
 
 test "Error contains expected variants" {

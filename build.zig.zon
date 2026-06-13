@@ -11,5 +11,8 @@
         "examples",
         "README.md",
         "AGENTS.md",
+        "CONTRIBUTING.md",
+        "CHANGELOG.md",
+        "LICENSE",
     },
 }

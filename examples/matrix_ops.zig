@@ -6,29 +6,38 @@ pub fn main() !void {
     const T = f64;
     const V = zsl.la.Vector(T);
     const M = zsl.la.Matrix(T);
+    const mo = zsl.la.matrix_ops;
 
-    var a = try M.fromRowSlice(allocator, 2, 3, &[_]T{
-        1.0, 2.0, 3.0,
-        4.0, 5.0, 6.0,
+    var a = try M.fromRowSlice(allocator, 3, 3, &[_]T{
+        2.0, 1.0, 1.0,
+        1.0, 3.0, 2.0,
+        1.0, 0.0, 0.0,
     });
     defer a.deinit(allocator);
-    var x = try V.fromSlice(allocator, &[_]T{ 1.0, 0.5, 2.0 });
-    defer x.deinit(allocator);
-    var y = try V.fromSlice(allocator, &[_]T{ 0.0, 0.0 });
-    defer y.deinit(allocator);
 
-    try zsl.blas.gemv(T, .no_trans, 1.0, a, x, 0.0, &y);
-    std.debug.print("gemv(A, x) = {any}\n", .{y.rawData()});
+    const d = try mo.det(T, a, allocator);
+    std.debug.print("det(A) = {d}\n", .{d});
 
-    var b = try M.fromRowSlice(allocator, 3, 2, &[_]T{
-        1.0, 2.0,
-        3.0, 4.0,
-        5.0, 6.0,
-    });
+    var inv = try mo.inverse(T, a, allocator);
+    defer inv.deinit(allocator);
+    std.debug.print("A^-1 = {any}\n", .{inv.rawData()});
+
+    var b = try V.fromSlice(allocator, &[_]T{ 4.0, 6.0, 1.0 });
     defer b.deinit(allocator);
-    var c = try M.init(allocator, 2, 2);
-    defer c.deinit(allocator);
+    var x = try V.init(allocator, 3);
+    defer x.deinit(allocator);
 
-    try zsl.blas.gemm(T, .no_trans, .no_trans, 1.0, a, b, 0.0, &c);
-    std.debug.print("gemm(A, B) = {any}\n", .{c.rawData()});
+    try mo.solve(T, a, b, &x, allocator);
+    std.debug.print("solve(A, b) = {any}\n", .{x.rawData()});
+
+    // Small-matrix closed-form inverse.
+    var a2 = try M.fromRowSlice(allocator, 2, 2, &[_]T{
+        4.0, 7.0,
+        2.0, 6.0,
+    });
+    defer a2.deinit(allocator);
+    var a2_inv = try M.init(allocator, 2, 2);
+    defer a2_inv.deinit(allocator);
+    const d2 = try mo.inverse_small(T, a2, &a2_inv, 1e-12);
+    std.debug.print("det(A2) = {d}, A2^-1 = {any}\n", .{ d2, a2_inv.rawData() });
 }

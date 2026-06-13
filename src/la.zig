@@ -2,6 +2,10 @@ const std = @import("std");
 const util = @import("util.zig");
 const Error = @import("errors.zig").Error;
 
+pub const matrix_ops = @import("la/matrix_ops.zig");
+pub const jacobi = @import("la/jacobi.zig");
+pub const statistics = @import("la/statistics.zig");
+
 pub fn Vector(comptime T: type) type {
     _ = util.Float(T);
 
@@ -60,8 +64,6 @@ pub fn Vector(comptime T: type) type {
 }
 
 pub fn Matrix(comptime T: type) type {
-    _ = util.Float(T);
-
     return struct {
         data: []T,
         rows: usize,

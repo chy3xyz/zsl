@@ -27,10 +27,12 @@ pub const Ridge = struct {
         const stat = try allocator.create(Stat(f64));
         errdefer allocator.destroy(stat);
         stat.* = try Stat(f64).from_data(data.*, name, allocator);
+        errdefer stat.deinit(allocator);
 
         const params = try allocator.create(ParamsReg(f64));
         errdefer allocator.destroy(params);
         params.* = try ParamsReg(f64).init(allocator, data.nb_features);
+        errdefer params.deinit(allocator);
 
         return .{
             .name = name,
